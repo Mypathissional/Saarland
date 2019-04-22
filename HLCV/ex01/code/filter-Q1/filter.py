@@ -64,6 +64,7 @@ plt.subplot(2,3,1)
 plt.imshow(conv2(conv2(img, G, 'same'), G.T, 'same') , cmap='gray')
 plt.subplot(2,3,2)
 plt.imshow(conv2(conv2(img, G, 'same'), D.T, 'same') , cmap='gray')
+#plt.imshow(conv2(img, G, 'same') , cmap='gray')
 plt.subplot(2,3,3)
 plt.imshow(conv2(conv2(img, D.T, 'same'), G, 'same') , cmap='gray')
 plt.subplot(2,3,4)
@@ -73,6 +74,13 @@ plt.imshow(conv2(conv2(img, D, 'same'), G.T, 'same') , cmap='gray')
 plt.subplot(2,3,6)
 plt.imshow(conv2(conv2(img, G.T, 'same'), D, 'same') , cmap='gray')
 plt.show()
+
+# ------------- Comments
+# 1 operation - convolution of 1-d gaussian wih 1-d gaussian will give again 2-d gaussian
+# filter. Since, the variance is high enough, the white circle is quite big 
+# 2 and 5 operations are equivallent since convolution is commutative.
+# As well as 3 and 4-th operations
+# Since 2 and 5 operations are convolving gaussian blur with the derivative in y-direction 
 
 
 ## function gaussderiv (Question 1.d)
