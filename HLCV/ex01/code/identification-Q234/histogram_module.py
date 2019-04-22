@@ -9,8 +9,16 @@ from numpy import histogram as hist
 def normalized_hist(img_gray, num_bins):
     assert len(img_gray.shape) == 2, 'image dimension mismatch'
     assert img_gray.dtype == 'float', 'incorrect image type'
+     # your code here
+    bin_length = 255./num_bins
+    hists = np.zeros(num_bins)
 
-    # your code here
+    for r in img_gray:
+        for c in r:
+            hists[int(c/bin_length)]+=1
+
+    hists = np.array(hists,dtype='float')/np.sum(hists)
+    bins = np.linspace(0,255,num_bins+1)
     return hists, bins
 
 #  compute joint histogram for each color channel in the image, histogram should be normalized so that sum of all values equals 1
@@ -27,14 +35,16 @@ def rgb_hist(img_color, num_bins):
     
     # execute the loop for each pixel in the image 
     for i in range(img_color.shape[0]):
-        for i in range(img_color.shape[1]):
+        for j in range(img_color.shape[1]):
             # increment a histogram bin which corresponds to the value of pixel i,j; h(R,G,B)
             # ...
-            pass
+            pixel_bins = np.array(img_color[i,j,:]*num_bins/255.,dtype = int)
+            hists[pixel_bins]+=1
 
     # normalize the histogram such that its integral (sum) is equal 1
     # your code here
-
+    hists = np.array(hists,dtype = 'float')
+    hists = hists/np.sum(hists)
     hists = hists.reshape(hists.size)
     return hists
 
@@ -63,9 +73,10 @@ def rg_hist(img_color, num_bins):
 #  histogram should be normalized so that sum of all values equals 1
 #
 #  img_gray - input grayvalue image
-#  num_bins - number of bins used to discretize each dimension, total number of bins in the histogram should be num_bins^2
-#
+#  num_bins - number of bins used to discretize each dimension,
+# total number of bins in the histogram should be num_bins^2
 #  note: you can use the function gaussderiv.m from the filter exercise.
+
 def dxdy_hist(img_gray, num_bins):
     assert len(img_gray.shape) == 2, 'image dimension mismatch'
     assert img_gray.dtype == 'float', 'incorrect image type'
@@ -94,14 +105,14 @@ def is_grayvalue_hist(hist_name):
 
 
 def get_hist_by_name(img1_gray, num_bins_gray, dist_name):
-  if dist_name == 'grayvalue':
-    return normalized_hist(img1_gray, num_bins_gray)
-  elif dist_name == 'rgb':
-    return rgb_hist(img1_gray, num_bins_gray)
-  elif dist_name == 'rg':
-    return rg_hist(img1_gray, num_bins_gray)
-  elif dist_name == 'dxdy':
-    return dxdy_hist(img1_gray, num_bins_gray)
-  else:
-    assert 'unknown distance: %s'%dist_name
-  
+    if dist_name == 'grayvalue':
+        return normalized_hist(img1_gray, num_bins_gray)
+    elif dist_name == 'rgb':
+        return rgb_hist(img1_gray, num_bins_gray)
+    elif dist_name == 'rg':
+        return rg_hist(img1_gray, num_bins_gray)
+    elif dist_name == 'dxdy':
+        return dxdy_hist(img1_gray, num_bins_gray)
+    else:
+        assert 'unknown distance: %s'%dist_name
+

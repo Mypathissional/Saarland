@@ -33,6 +33,8 @@ plt.bar((bin_gray1[0:-1] + bin_gray1[1:])/2, hist_gray1)
 
 plt.subplot(1,3,3)
 hist_gray2, bin_gray2 = histogram_module.normalized_hist(img_gray, num_bins_gray)
+
+
 plt.bar((bin_gray2[0:-1] + bin_gray2[1:])/2, hist_gray2)
 plt.show()
 
@@ -51,8 +53,6 @@ plt.show()
 # compose rg_hist.m and dxdy_hist.m as well
 
 # add your code here
-
-
 
 ## distance functions (Question 2.c)
 
