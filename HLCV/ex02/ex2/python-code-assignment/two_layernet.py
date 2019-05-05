@@ -10,6 +10,25 @@ except NameError:
     xrange = range  # Python 3
 
 
+def ReLU(x):
+    x[x < 0] = 0
+    return x
+
+
+def Softmax(x):
+    return np.exp(x) / np.sum(np.exp(x))
+
+
+def L2(x):
+    return np.sum(np.square(x))
+
+
+def ReluDer(x):
+    out = np.zeroes(x.shape)
+    out[x >= 0] = 1
+    return out
+
+
 class TwoLayerNet(object):
     """
     A two-layer fully-connected neural network. The net has an input dimension of
@@ -71,10 +90,6 @@ class TwoLayerNet(object):
           with respect to the loss function; has the same keys as self.params.
         """
         # Unpack variables from the params dictionary
-        W1, b1 = self.params['W1'], self.params['b1']
-        W2, b2 = self.params['W2'], self.params['b2']
-        N, D = X.shape
-
         # Compute the forward pass
         scores = 0.
         #############################################################################
@@ -83,11 +98,9 @@ class TwoLayerNet(object):
         # of shape (N, C).                                                          #
         #############################################################################
         # *****START OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
-
-        pass
-
+        N, D = X.shape
+        scores = self.predict(X)
         # *****END OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
-
         # If the targets are not given then jump out, we're done
         if y is None:
             return scores
@@ -102,8 +115,9 @@ class TwoLayerNet(object):
         #############################################################################
         # *****START OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
         # Implement the loss for softmax output layer
-        pass
-
+        label_scores = np.array(map(np.take, scores, y))
+        loss = -np.mean(np.log(label_scores))  # * adding cross entropy loss *
+        loss += reg * (L2(self.params['W1']) + L2(self.params['W2']))
         # *****END OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
 
         # Backward pass: compute gradients
@@ -114,8 +128,19 @@ class TwoLayerNet(object):
         # grads['W1'] should store the gradient on W1, and be a matrix of same size #
         #############################################################################
         # *****START OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
-        pass
-
+        num_classes = self.params['b2'].shape[0]
+        delta = np.zeroes((N, num_classes))
+        delta[range(N), y] = 1
+        dz3 = 1. / N * (self.params["a3"] - delta)
+        grads["W2"] = np.matmul(dz3.T, self.params['a2']) + \
+            2 * reg * self.params['W2']
+        grads["b2"] = np.matmul(np.ones((1, N)), dz3)
+        da2 = np.matmul(dz3,  self.params['W2'])
+        da2dz2 = ReluDer(self.params["z2"])
+        dz2 = np.matmul(da2, da2dz2)
+        grads["b1"] = np.matmul(np.ones((1, N)), dz2)
+        grads["W1"] = np.matmul(dz2.T, self.params['a1']) + \
+            2 * reg * self.params['W2']
         # *****END OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
 
         return loss, grads
@@ -148,17 +173,23 @@ class TwoLayerNet(object):
         loss_history = []
         train_acc_history = []
         val_acc_history = []
-
+        epoch = 0
         for it in range(num_iters):
-            X_batch = X
-            y_batch = y
-
             #########################################################################
             # TODO: Create a random minibatch of training data and labels, storing  #
             # them in X_batch and y_batch respectively.                             #
             #########################################################################
             # *****START OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
-            pass
+            if it % iterations_per_epoch == 0:
+                shuffle_list = np.random.permutation(num_train)
+                X = X[shuffle_list]
+                y = y[shuffle_list]
+                epoch = it / iterations_per_epoch
+
+            ind = it - epoch * iterations_per_epoch - 1 + epoch == 0
+
+            X_batch = X[ind * batch_size:(ind + 1) * batch_size]
+            y_batch = y[ind * batch_size: (ind + 1) * batch_size]
             # *****END OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
 
             # Compute loss and gradients using the current minibatch
@@ -172,15 +203,16 @@ class TwoLayerNet(object):
             # stored in the grads dictionary defined above.                         #
             #########################################################################
             # *****START OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
-
-            pass
-
+            self.params['W2'] += learning_rate * grads["W2"]
+            self.params['W1'] += learning_rate * grads["W1"]
+            self.params['b1'] += learning_rate * grads["b1"]
+            self.params['b2'] += learning_rate * grads["b2"]
             # *****END OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
 
             if verbose and it % 100 == 0:
                 print('iteration %d / %d: loss %f' % (it, num_iters, loss))
 
-            # Every epoch, check train and val accuracy and decay learning rate.
+            # Every epoch, check train and val accuracy and decay learning rate
             if it % iterations_per_epoch == 0:
                 # Check accuracy
                 train_acc = (self.predict(X_batch) == y_batch).mean()
@@ -192,9 +224,9 @@ class TwoLayerNet(object):
                 learning_rate *= learning_rate_decay
 
         return {
-          'loss_history': loss_history,
-          'train_acc_history': train_acc_history,
-          'val_acc_history': val_acc_history,
+            'loss_history': loss_history,
+            'train_acc_history': train_acc_history,
+            'val_acc_history': val_acc_history,
         }
 
     def predict(self, X):
@@ -218,8 +250,15 @@ class TwoLayerNet(object):
         # TODO: Implement this function; it should be VERY simple!                #
         ###########################################################################
         # *****START OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
-
-        pass
+        W1, b1 = self.params['W1'], self.params['b1']
+        W2, b2 = self.params['W2'], self.params['b2']
+        N, D = X.shape
+        self.params["a1"] = X
+        self.params["z2"] = np.matmul(self.params["a1"], W1) + b1
+        self.params["a2"] = ReLU(self.params["z2"])
+        self.params["z3"] = np.matmul(self.params["a2"], W2) + b2
+        self.params["a3"] = np.apply_along_axis(Softmax, 1, self.params["z2"])
+        y_pred = self.params["a3"]
 
         # *****END OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
 
