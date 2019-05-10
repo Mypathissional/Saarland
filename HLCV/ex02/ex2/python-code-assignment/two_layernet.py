@@ -11,8 +11,9 @@ except NameError:
 
 
 def ReLU(x):
-    x[x < 0] = 0
-    return x
+    a = x.copy()
+    a[x < 0] = 0
+    return a
 
 
 def Softmax(x):
@@ -62,9 +63,9 @@ class TwoLayerNet(object):
         - output_size: The number of classes C.
         """
         self.params = {}
-        self.params['W1'] = std * np.random.randn( input_size, hidden_size)
+        self.params['W1'] = std * np.random.randn(input_size, hidden_size)
         self.params['b1'] = np.zeros(hidden_size)
-        self.params['W2'] = std * np.random.randn( hidden_size, output_size)
+        self.params['W2'] = std * np.random.randn(hidden_size, output_size)
         self.params['b2'] = np.zeros(output_size)
 
     def loss(self, X, y=None, reg=0.0):
@@ -100,7 +101,7 @@ class TwoLayerNet(object):
         #############################################################################
         # *****START OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
         N, D = X.shape
-        scores = self.predict(X,False)
+        scores = self.predict(X, False)
         # *****END OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
         # If the targets are not given then jump out, we're done
         if y is None:
@@ -117,7 +118,8 @@ class TwoLayerNet(object):
         # *****START OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
         # Implement the loss for softmax output layer
         label_scores = np.array(map(np.take, scores, y))
-        loss = -np.mean(np.log(label_scores+ np.power(0.1,10) ))  # * adding cross entropy loss *
+        # * adding cross entropy loss *
+        loss = -np.mean(np.log(label_scores + np.power(0.1, 10)))
         loss += reg * (L2(self.params['W1']) + L2(self.params['W2']))
         # *****END OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
 
@@ -133,15 +135,16 @@ class TwoLayerNet(object):
         delta = np.zeros((N, num_classes))
         delta[range(N), y] = 1
         dz3 = 1. / N * (self.params["a3"] - delta)
-        grads["W2"] = np.matmul(self.params['a2'].T,dz3) + \
+        grads["W2"] = np.matmul(self.params['a2'].T, dz3) + \
             2 * reg * self.params['W2']
         grads["b2"] = np.matmul(np.ones((N)), dz3)
-        da2 = np.matmul(dz3,self.params['W2'].T)
+        da2 = np.matmul(dz3, self.params['W2'].T)
         da2dz2 = ReluDer(self.params["z2"])
         dz2 = np.multiply(da2, da2dz2)
         grads["b1"] = np.matmul(np.ones((N)), dz2)
-        grads["W1"] = np.matmul( self.params['a1'].T,dz2) + \
+        grads["W1"] = np.matmul(self.params['a1'].T, dz2) + \
             2 * reg * self.params['W1']
+#        import  ipdb; ipdb.set_trace()
         # *****END OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
 
         return loss, grads
@@ -229,7 +232,7 @@ class TwoLayerNet(object):
             'val_acc_history': val_acc_history,
         }
 
-    def predict(self, X,return_labels=True):
+    def predict(self, X, return_labels=True):
         """
         Use the trained weights of this two-layer network to predict labels for
         data points. For each data point we predict scores for each of the C
@@ -254,14 +257,16 @@ class TwoLayerNet(object):
         W2, b2 = self.params['W2'], self.params['b2']
         N, D = X.shape
         self.params["a1"] = X
-        self.params["z2"] = np.matmul(self.params["a1"],W1) + np.expand_dims(b1,0)
+        self.params["z2"] = np.matmul(
+            self.params["a1"], W1) + np.expand_dims(b1, 0)
         self.params["a2"] = ReLU(self.params["z2"])
-        self.params["z3"] = np.matmul(self.params["a2"],W2) + np.expand_dims(b2,0)
+        self.params["z3"] = np.matmul(
+            self.params["a2"], W2) + np.expand_dims(b2, 0)
         self.params["a3"] = np.apply_along_axis(Softmax, 1, self.params["z3"])
         y_pred = self.params["a3"]
         if not return_labels:
             return y_pred
-        y_pred = np.argmax(y_pred,1)
+        y_pred = np.argmax(y_pred, 1)
         # *****END OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
 
         return y_pred
