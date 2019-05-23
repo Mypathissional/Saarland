@@ -39,8 +39,7 @@ learning_rate = 2e-3
 learning_rate_decay = 0.95
 reg = 0.001
 num_training = 49000
-#num_training =50
-num_validation = 1000
+num_validation = 1
 norm_layer = None
 print(hidden_size)
 data_aug_enabled = False
@@ -242,6 +241,8 @@ optimizer = torch.optim.Adam(
 lr = learning_rate
 total_step = len(train_loader)
 best_acc = 0
+training_loss = []
+validation_accuracy = []
 for epoch in range(num_epochs):
     for i, (images, labels) in tqdm(enumerate(train_loader)):
         # Move tensors to the configured device
@@ -257,6 +258,8 @@ for epoch in range(num_epochs):
         optimizer.zero_grad()
         loss.backward()
         optimizer.step()
+
+        training_loss.append(loss.item())
         if (i + 1) % 100 == 0:
             print ('Epoch [{}/{}], Step [{}/{}], Loss: {:.4f}'
                    .format(epoch + 1, num_epochs, i + 1, total_step, loss.item()))
@@ -275,7 +278,7 @@ for epoch in range(num_epochs):
             _, predicted = torch.max(outputs.data, 1)
             total += labels.size(0)
             correct += (predicted == labels).sum().item()
-
+        validation_accuracy.append(100 * correct / total)
         print('Validataion accuracy is: {} %'.format(100 * correct / total))
         #################################################################################
         # TODO: Q2.b Implement the early stopping mechanism to save the model which has #
@@ -291,7 +294,8 @@ for epoch in range(num_epochs):
 
 # Test the model
 # In test phase, we don't need to compute gradients (for memory efficiency)
-model = torch.load()
+
+model.load_state_dict(torch.load('model1_1.ckpt'))
 model.eval()
 #################################################################################
 # TODO: Q2.b Implement the early stopping mechanism to load the weights from the#
