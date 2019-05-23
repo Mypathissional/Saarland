@@ -325,18 +325,15 @@ with torch.no_grad():
 # Q1.c: Implementing the function to visualize the filters in the first conv layers.
 # Visualize the filters before training
 plt.subplot(2, 1, 1)
-plt.plot(stats['loss_history'])
+plt.plot(training_loss)
 plt.title('Loss history')
-plt.xlabel('Iteration')
+plt.xlabel('Iterations per epoch')
 plt.ylabel('Loss')
 
 plt.subplot(2, 1, 2)
-plt.plot(, label='train')
-plt.plot(stats['val_acc_history'], label='val')
+plt.plot(validation_accuracy, label='val')
 plt.title('Classification accuracy history for params')
-plt.xlabel('Epoch')
-plt.ylabel('Classification accuracy' + str(val_acc))
-plt.legend("Params")
+plt.xlabel('Iterations per epoch')
 plt.show()
 
 VisualizeFilter(model)
