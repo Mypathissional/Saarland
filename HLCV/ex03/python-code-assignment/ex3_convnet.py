@@ -40,6 +40,7 @@ learning_rate_decay = 0.95
 reg = 0.001
 num_training = 49000
 num_validation = 1
+#num_validation = 1000
 norm_layer = None
 print(hidden_size)
 data_aug_enabled = False
@@ -244,6 +245,7 @@ best_acc = 0
 training_loss = []
 validation_accuracy = []
 for epoch in range(num_epochs):
+    batch_loss = 0
     for i, (images, labels) in tqdm(enumerate(train_loader)):
         # Move tensors to the configured device
 
@@ -259,11 +261,11 @@ for epoch in range(num_epochs):
         loss.backward()
         optimizer.step()
 
-        training_loss.append(loss.item())
+        batch_loss += loss.item()
         if (i + 1) % 100 == 0:
             print ('Epoch [{}/{}], Step [{}/{}], Loss: {:.4f}'
                    .format(epoch + 1, num_epochs, i + 1, total_step, loss.item()))
-
+    training_loss.append(batch_loss/batch_size)
     # Code to update the lr
     lr *= learning_rate_decay
     update_lr(optimizer, lr)
@@ -322,6 +324,21 @@ with torch.no_grad():
 
 # Q1.c: Implementing the function to visualize the filters in the first conv layers.
 # Visualize the filters before training
+plt.subplot(2, 1, 1)
+plt.plot(stats['loss_history'])
+plt.title('Loss history')
+plt.xlabel('Iteration')
+plt.ylabel('Loss')
+
+plt.subplot(2, 1, 2)
+plt.plot(, label='train')
+plt.plot(stats['val_acc_history'], label='val')
+plt.title('Classification accuracy history for params')
+plt.xlabel('Epoch')
+plt.ylabel('Classification accuracy' + str(val_acc))
+plt.legend("Params")
+plt.show()
+
 VisualizeFilter(model)
 # Save the model checkpoint
-torch.save(model.state_dict(), 'model.ckpt')
+#torch.save(model.state_dict(), 'model.ckpt')
