@@ -5,6 +5,9 @@ import torchvision.transforms as transforms
 import numpy as np
 from math import ceil
 import matplotlib.pyplot as plt
+import ipdb
+from tqdm import tqdm
+from torchsummary import summary
 
 
 def weights_init(m):
@@ -29,17 +32,18 @@ print('Using device: %s' % device)
 # --------------------------------
 input_size = 3
 num_classes = 10
-hidden_size = [128, 512, 512, 512, 512, 512]
+hidden_size = [128, 512, 512, 512, 512]
 num_epochs = 20
 batch_size = 200
 learning_rate = 2e-3
 learning_rate_decay = 0.95
 reg = 0.001
 num_training = 49000
+#num_training =50
 num_validation = 1000
 norm_layer = None
 print(hidden_size)
-
+data_aug_enabled = False
 
 # -------------------------------------------------
 # Load the CIFAR-10 dataset
@@ -50,16 +54,21 @@ print(hidden_size)
 #################################################################################
 data_aug_transforms = []
 # *****START OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
+if data_aug_enabled:
+    data_aug_transforms = data_aug_transforms + [
+        transforms.ColorJitter(),
+        transforms.RandomAffine(-180, translate=(-0.1, 0.1), scale=(-0.1, 0.1))
+    ]
 
 # *****END OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
 norm_transform = transforms.Compose(data_aug_transforms + [transforms.ToTensor(),
                                                            transforms.Normalize(
-                                                               (0.5, 0.5, 0.5), (0.5, 0.5, 0.5))
-                                                           ])
+    (0.5, 0.5, 0.5), (0.5, 0.5, 0.5))
+])
 test_transform = transforms.Compose([transforms.ToTensor(),
                                      transforms.Normalize(
-                                         (0.5, 0.5, 0.5), (0.5, 0.5, 0.5))
-                                     ])
+    (0.5, 0.5, 0.5), (0.5, 0.5, 0.5))
+])
 cifar_dataset = torchvision.datasets.CIFAR10(root='datasets/',
                                              train=True,
                                              transform=norm_transform,
@@ -98,14 +107,9 @@ test_loader = torch.utils.data.DataLoader(dataset=test_dataset,
 # Set norm_layer for different networks whether using batch normalization
 # -------------------------------------------------
 
-class Flatten(nn.Module):
-    def forward(self, x):
-        # return x.view(x.size()[0], -1)
-        return x.reshape(-1, x.size()[1])
-
-
 class ConvNet(nn.Module):
-    def __init__(self, input_size, hidden_layers, num_classes, norm_layer=None):
+    def __init__(self, input_size, hidden_layers, num_classes, norm_layer=None,
+                 use_dropout=False, p=0.1):
         super(ConvNet, self).__init__()
         #################################################################################
         # TODO: Initialize the modules required to implement the convolutional layer    #
@@ -126,24 +130,24 @@ class ConvNet(nn.Module):
         for i in range(len(dims) - 1):
             [hid_in, hid_out] = [dims[i], dims[i + 1]]
             layers.append(self.__convBlock(hid_in, hid_out, norm_layer))
+            if use_dropout:
+                layers.append(nn.Dropout(p))
 
-        layers.append(Flatten())
-        layers.append(nn.Linear(hidden_layers[-1], num_classes))
-
-        self.net = nn.Sequential(*layers)
+        self.features = nn.Sequential(*layers)
+        self.classifier = nn.Linear(hidden_layers[-1], num_classes)
         # *****END OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
 
-    def __convBlock(self, in_channel, out_channel, norm_layer, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1)):
+    def __convBlock(self, in_channel, out_channel, norm_layer, kernel_size=3, stride=1, padding=1):
         if norm_layer:
             seq = nn.Sequential(nn.Conv2d(in_channel, out_channel, kernel_size, stride, padding),
                                 nn.BatchNorm2d(out_channel),
-                                nn.MaxPool2d(kernel_size=(
-                                    2, 2), stride=(2, 2)),
+                                nn.MaxPool2d(kernel_size=(2, 2),
+                                             stride=(2, 2)),
                                 nn.ReLU())
         else:
             seq = nn.Sequential(nn.Conv2d(in_channel, out_channel, kernel_size, stride, padding),
-                                nn.MaxPool2d(kernel_size=(
-                                    2, 2), stride=(2, 2)),
+                                nn.MaxPool2d(kernel_size=(2, 2),
+                                             stride=(2, 2)),
                                 nn.ReLU())
         return seq
 
@@ -152,7 +156,9 @@ class ConvNet(nn.Module):
         # TODO: Implement the forward pass computations                                 #
         #################################################################################
         # *****START OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
-        out = self.net(x)
+        out = self.features(x)
+        out = out.view(x.size(0), -1)
+        out = self.classifier(out)
         # *****END OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
         return out
 
@@ -161,7 +167,7 @@ class ConvNet(nn.Module):
 # Calculate the model size (Q1.b)
 # if disp is true, print the model parameters, otherwise, only return the number of parameters.
 # -------------------------------------------------
-def PrintModelSize(model, disp=True):
+def PrintModelSize(model):
     #################################################################################
     # TODO: Implement the function to count the number of trainable parameters in   #
     # the input model. This useful to track the capacity of the model you are       #
@@ -171,12 +177,8 @@ def PrintModelSize(model, disp=True):
     model_sz = 0
     for i, param in enumerate(model.parameters()):
         if param.requires_grad:
-            param_size = param.size()
-            model_sz += param_size.numel()
-            if disp:
-                print("{0}___param shape:  {1}, param_size:  {2}".format(
-                    map(str, [i, param.size(), param.size().numel()])))
-
+            model_sz += param.numel()
+    print("Total number of params: ", model_sz)
     # *****END OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
     return model_sz
 
@@ -185,8 +187,7 @@ def PrintModelSize(model, disp=True):
 # visualize the convolution filters of the first convolution layer of the input model
 # -------------------------------------------------
 
-
-def VisualizeFilter(model, vert=20.):
+def VisualizeFilter(model, vert=16.):
     #################################################################################
     # TODO: Implement the functiont to visualize the weights in the first conv layer#
     # in the model. Visualize them as a single image fo stacked filters.            #
@@ -194,11 +195,16 @@ def VisualizeFilter(model, vert=20.):
     #################################################################################
     # *****START OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
     first_conv = next(model.parameters())
-    first_conv = first_conv.detach.numpy()
-    fig, axs = plt.subplots(ceil(first_conv.shape[0] / vert), vert)
-    for i in range(first_conv.shape[0] / vert):
-        for j in range(vert):
-            axs[i][j].imshow(first_conv[i * vert + j])
+    first_conv = first_conv.detach().numpy().transpose(0, 3, 1, 2)
+    interp = lambda a: np.interp(a, (a.min(), a.max()), (0., 1.))
+    first_conv = np.apply_along_axis(interp,1,first_conv)
+
+    fig, axs = plt.subplots(int(ceil(first_conv.shape[0] / vert)), int(vert))
+    for i in range(int(first_conv.shape[0] / vert)):
+        for j in range(int(vert)):
+            axs[i][j].imshow(first_conv[i * int(vert) + j])
+    plt.show()
+
     # *****END OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
 
     # ======================================================================================
@@ -223,7 +229,8 @@ PrintModelSize(model)
 # Q1.a: Implementing the function to visualize the filters in the first conv layers.
 # Visualize the filters before training
 # ======================================================================================
-VisualizeFilter(model)
+#VisualizeFilter(model)
+summary(model, (3,32,32))
 
 
 # Loss and optimizer
@@ -234,22 +241,22 @@ optimizer = torch.optim.Adam(
 # Train the model
 lr = learning_rate
 total_step = len(train_loader)
+best_acc = 0
 for epoch in range(num_epochs):
-    for i, (images, labels) in enumerate(train_loader):
+    for i, (images, labels) in tqdm(enumerate(train_loader)):
         # Move tensors to the configured device
+
         images = images.to(device)
         labels = labels.to(device)
 
         # Forward pass
         outputs = model(images)
-
         loss = criterion(outputs, labels)
 
         # Backward and optimize
         optimizer.zero_grad()
         loss.backward()
         optimizer.step()
-
         if (i + 1) % 100 == 0:
             print ('Epoch [{}/{}], Step [{}/{}], Loss: {:.4f}'
                    .format(epoch + 1, num_epochs, i + 1, total_step, loss.item()))
@@ -276,13 +283,15 @@ for epoch in range(num_epochs):
         #################################################################################
         best_model = None
         # *****START OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
-
+        if best_acc < correct:
+            torch.save(model.state_dict(), 'model1_1.ckpt')
         # *****END OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
 
     model.train()
 
 # Test the model
 # In test phase, we don't need to compute gradients (for memory efficiency)
+model = torch.load()
 model.eval()
 #################################################################################
 # TODO: Q2.b Implement the early stopping mechanism to load the weights from the#
