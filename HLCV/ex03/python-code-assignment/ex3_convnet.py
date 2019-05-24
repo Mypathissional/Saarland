@@ -195,7 +195,7 @@ def VisualizeFilter(model, vert=16.):
     #################################################################################
     # *****START OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
     first_conv = next(model.parameters())
-    first_conv = first_conv.detach().numpy().transpose(0, 3, 1, 2)
+    first_conv = first_conv.detach().cpu().numpy().transpose(0, 3, 1, 2)
     interp = lambda a: np.interp(a, (a.min(), a.max()), (0., 1.))
     first_conv = np.apply_along_axis(interp,1,first_conv)
 
