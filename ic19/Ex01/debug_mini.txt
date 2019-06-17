@@ -1,0 +1,43 @@
+compressing file input/mini.pgm
+
+start huffman encoding: n: 15, s: 256
+symbol 0 (pixel value 0): 8
+symbol 1 (pixel value 0): 2
+symbol 2 (pixel value 0): 5
+alphabet contains 3 symbols
+
+building huffman tree (maximum 8 nodes)
+added leaf node 0: histogram count 0
+added leaf node 1: histogram count 1
+added leaf node 2: histogram count 2
+merged nodes 0 and 1, new node 3, count 1
+merged nodes 3 and 2, new node 4, count 3
+
+storing tree (s: 256)
+node 4: 1
+node 3: 1
+node 0: 0 (0)
+node 1: 0 (0)
+node 2: 0 (0)
+
+creating codes (s: 3)
+symbol 0: 11=3 (length 2)
+symbol 0: 01=2 (length 2)
+symbol 0: 0=0 (length 1)
+
+storing codeword (length: 15)
+symbol 0 (code 0, 1 bits): 0
+symbol 255 (code 0, 0 bits): 
+symbol 255 (code 0, 0 bits): 
+symbol 0 (code 0, 1 bits): 0
+symbol 130 (code 0, 0 bits): 
+symbol 0 (code 0, 1 bits): 0
+symbol 255 (code 0, 0 bits): 
+symbol 0 (code 0, 1 bits): 0
+symbol 0 (code 0, 1 bits): 0
+symbol 130 (code 0, 0 bits): 
+symbol 0 (code 0, 1 bits): 0
+symbol 0 (code 0, 1 bits): 0
+symbol 255 (code 0, 0 bits): 
+symbol 0 (code 0, 1 bits): 0
+symbol 255 (code 0, 0 bits): 
